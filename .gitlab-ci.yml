@@ -26,6 +26,6 @@ build:
 checker:
     stage: test
     image:
-        name: gitlab.cs.pub.ro:5050/vmchecker/vmchecker-next-assignment
+        name: gitlab.cs.pub.ro:5050/so2/0-list
     script:
         - echo ""
