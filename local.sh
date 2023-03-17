@@ -13,6 +13,12 @@ DEFAULT_IMAGE_NAME="so2/0-list"
 DEFAULT_TAG='latest'
 DEFAULT_REGISTRY='gitlab.cs.pub.ro:5050'
 
+SRC_DIR="$(realpath ./src)"
+CHECKER_BASE_DIR="$(realpath ./checker)"
+ASSIGNMENT_CHECKER_DIR="$(realpath ./checker/0-list-checker)"
+SO2_WORKSPACE=/linux/tools/labs
+ASSIGNMENT_MOUNT_DIR="${SO2_WORKSPACE}/skels/assignments/0-list"
+ASSIGNMENT_CHECKER_MOUNT_DIR="${SO2_WORKSPACE}/skels/assignments/0-list-checker"
 MOUNT_PROJECT_DIRECTORY="/build/$USER/$(basename "$(pwd)")"
 
 #=============================================================================
@@ -61,10 +67,11 @@ print_help() {
     echo "      --full_image_name <full_image_name> - the full name of the image (default: gitlab.cs.pub.ro:5050/<current_directory_name>:latest)"
     echo "      argumets_for_checker - list of space separated arguments to be passed to the checker"
     echo ""
-    echo "local.sh docker interactive [--full_image_name <full_image_name>] [--use_executable <executbale>]"
+    echo "local.sh docker interactive [--full_image_name <full_image_name>] [--use_executable <executbale>] [--privileged]"
     echo ""
     echo "      --full_image_name <full_image_name> - the full name of the image (default: gitlab.cs.pub.ro:5050/<current_directory_name>:latest)"
     echo "      --use_executable <executable> - command to run inside the container (default: /bin/bash)"
+    echo "      --privileged - run a privileged container. This allows the use of KVM"
     echo ""
     echo "local.sh checker [--remove_image] [--use_existing_image <image_name>] [--force_build] [argumets_for_checker]"
     echo ""
@@ -179,16 +186,20 @@ docker_interactive() {
                 shift
                 executable="$1"
             ;;
+	    --privileged)
+		privileged=--privileged
         esac
         shift
     done
 
     tmpdir="$(mktemp -d)"
-    cp -R ./* "$tmpdir"
-
-    docker run --rm -it \
-            --mount type=bind,source="$tmpdir",target="$MOUNT_PROJECT_DIRECTORY" \
-            --workdir "$MOUNT_PROJECT_DIRECTORY" \
+    set -x
+    cp -R ${ASSIGNMENT_CHECKER_DIR}/* "$tmpdir"
+    
+    docker run $privileged --rm -it \
+            --mount type=bind,source="$SRC_DIR",target="$ASSIGNMENT_MOUNT_DIR" \
+            --mount type=bind,source="$tmpdir",target="$ASSIGNMENT_CHECKER_MOUNT_DIR" \
+            --workdir "$SO2_WORKSPACE" \
             "$full_image_name" "$executable"
 }
 
@@ -240,6 +251,12 @@ checker_main() {
         docker build "${extra_docker_args[@]}" -q -t "$image_name" .
     fi
 
+    assign_tmpdir="$(mktemp -d)"
+    cp -R ${SRC_DIR}/* "$assign_tmpdir"
+
+    assign_check_tmpdir="$(mktemp -d)"
+    cp -R ${ASSIGNMENT_CHECKER_DIR}/* "$assign_check_tmpdir"
+    
     tmpdir="$(mktemp -d)"
     cp -R ./* "$tmpdir"
 
@@ -249,6 +266,8 @@ checker_main() {
     # otherwise stick to relative paths.
     # It is guaranteed that the current working directory in which checker.sh will run is  $CI_PROJECT_DIR/checker.
     docker run --rm \
+            --mount type=bind,source="$assign_tmpdir",target="$ASSIGNMENT_MOUNT_DIR" \
+            --mount type=bind,source="$assign_check_tmpdir",target="$ASSIGNMENT_CHECKER_MOUNT_DIR" \
             --mount type=bind,source="$tmpdir",target="$MOUNT_PROJECT_DIRECTORY" \
             "$image_name" /bin/bash -c "rm -rf /usr/local/bin/bash; cd \"$MOUNT_PROJECT_DIRECTORY/checker\"; \"$MOUNT_PROJECT_DIRECTORY/checker/checker.sh\" \"${script_args[@]}\"" # remove bash middleware script
 

@@ -1,108 +1,86 @@
 #!/bin/bash
 
-EXECUTABLE="../src/perfect"
-TIMEOUT_DURATION=10
-SCORE=0
-TOTAL_SCORE=0
+TIMEOUT=300 # 5 min
+SO2_WORKSPACE=/linux/tools/labs
+ASSIGNMENT0_MOD=list.ko
+ASSIGNMENT0_DIR=${SO2_WORKSPACE}/skels/assignments/0-list
+ASSIGNMENT0_CHECKER_DIR=${SO2_WORKSPACE}/skels/assignments/0-list-checker
+ASSIGNMENT0_OUTPUT=${SO2_WORKSPACE}/skels/0-list-output
+ASSIGNMENT0_FINISHED=${SO2_WORKSPACE}/skels/0-list-finished
 
-test_err()
+usage()
 {
-    local temp_output=''
-    temp_output="$(mktemp)"
-
-    timeout "$TIMEOUT_DURATION" bash -c "$EXECUTABLE {} > $temp_output 2>&1"
-
-    diff -Zq "$temp_output" "./references/ref1" > /dev/null 2>&1
-    return $?
+	echo "Usage: $0 <assignment>"
+	exit 1
 }
 
-test_single()
+timeout_exceeded()
 {
-    local temp_output=''
-    temp_output="$(mktemp)"
-
-    timeout "$TIMEOUT_DURATION" xargs -a ./input/input2 -0 -I{} bash -c "$EXECUTABLE {} > $temp_output 2>&1"
-
-    diff -Zq "$temp_output" "./references/ref2" > /dev/null 2>&1
-    return $?
+	echo TIMEOUT EXCEEDED !!! killing the process
+	pkill -SIGKILL qemu
+	exit 1
 }
 
-test_multiple()
+run_checker()
 {
-    local temp_output=''
-    temp_output="$(mktemp)"
+	local assignment_mod=$1
+	local assignment_dir=$2
+	local checker_dir=$3
+	local output=$4
+	local finished=$5
+	local assignment=$6
+	
+	local module_path="${assignment_dir}/${assignment_mod}"
 
-    timeout "$TIMEOUT_DURATION" xargs -a ./input/input3 -0 -I{} bash -c "$EXECUTABLE {} > $temp_output 2>&1"
+	pushd /linux/tools/labs
+		if [ -f $module_path ]; then
+			echo "Removing ${module_path}"
+		fi
+		if [ -f $output ]; then
+			echo "Removing $output"
+			rm $output &> /dev/null
+		fi
+		if [ -f $finished ]; then
+			echo "Removing $finished"
+			rm $finished &> /dev/null
+		fi
 
-    diff -Zq "$temp_output" "./references/ref3" > /dev/null 2>&1
-    return $?
+		echo "Building..."
+		make build
+
+		if [ ! -f $module_path ]; then
+			echo "Cannot find $assignment_mod"
+			exit 1
+		fi
+	
+		# copy *.ko in checker
+		echo "Copying $module_path into $checker_dir"
+		cp $module_path $checker_dir
+
+		LINUX_ADD_CMDLINE="so2=$assignment" ./qemu/run-qemu.sh &> /dev/null &
+		
+		echo -n "CHECKER IS RUNNING"
+		while [ ! -f $finished ]
+		do
+			if ((timeout >= TIMEOUT)); then
+				if [ -f $output ]; then
+					cat $output
+				fi
+				timeout_exceeded
+			fi
+			sleep 2
+			(( timeout += 2 ))
+			echo -n .
+		done
+		cat $output
+	popd
 }
 
-test_edge()
-{
-    local temp_output=''
-    temp_output="$(mktemp)"
-
-    timeout "$TIMEOUT_DURATION" xargs -a ./input/input4 -0 -I{} bash -c "$EXECUTABLE {} > $temp_output 2>&1"
-
-    diff -Zq "$temp_output" "./references/ref4" > /dev/null 2>&1
-    return $?
-}
-
-setup()
-{
-    pushd ../src > /dev/null || exit 1
-    make -s build
-    popd > /dev/null || exit 1
-}
-
-cleanup()
-{
-    pushd ../src > /dev/null || exit 1
-    make -s clean
-    popd > /dev/null || exit 1
-}
-
-test_fun_array=(                        \
-	test_err            "Name 1"    25  \
-	test_single         "Name 2"    25  \
-	test_multiple       "Name 3"    25  \
-	test_edge           "Name 4"    25  \
-)
-
-run_test()
-{
-    test_index="$1"
-    test_func_index=$((test_index * 3))
-    description=${test_fun_array[$((test_func_index + 1))]}
-    points=${test_fun_array[$((test_func_index + 2))]}
-    TOTAL_SCORE=$((TOTAL_SCORE + points))
-
-    echo -ne "Testing\t\t$description\t"
-    if ${test_fun_array["$test_func_index"]} ; then
-        SCORE=$((SCORE + points))
-        echo "$points/$points"
-        return 0
-    else
-        echo "0/$points"
-        return 1
-    fi
-}
-
-test_all()
-{
-    for i in $(seq 0 "$((${#test_fun_array[@]} / 3 - 1))") ; do
-        run_test "$i"
-    done
-
-    echo -e "\nTotal: $SCORE/$TOTAL_SCORE"
-}
-
-setup
-if [ -z "$1" ] ; then
-    test_all
-else
-    run_test "$1"
-    exit $?
-fi
-cleanup
+case $1 in
+	0-list)
+		run_checker $ASSIGNMENT0_MOD $ASSIGNMENT0_DIR $ASSIGNMENT0_CHECKER_DIR $ASSIGNMENT0_OUTPUT $ASSIGNMENT0_FINISHED $1
+		;;
+	*)
+		usage
+		;;
+esac
