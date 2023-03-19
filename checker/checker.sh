@@ -32,10 +32,16 @@ run_checker()
 	
 	local module_path="${assignment_dir}/${assignment_mod}"
 
+	echo "Copying the contents of src/ into $assignment_dir"
+	cp src/* $assignment_dir
+
+	echo "Checking if $assignment_mod exists before build"
+	if [ -f $module_path ]; then
+			echo "$assignment_mod shouldn't exists. Removing ${module_path}"
+			rm $module_path
+	fi
+		
 	pushd /linux/tools/labs
-		if [ -f $module_path ]; then
-			echo "Removing ${module_path}"
-		fi
 		if [ -f $output ]; then
 			echo "Removing $output"
 			rm $output &> /dev/null
