@@ -71,13 +71,14 @@ print_help() {
     echo ""
     echo "      --full_image_name <full_image_name> - the full name of the image (default: gitlab.cs.pub.ro:5050/<current_directory_name>:latest)"
     echo "      --use_executable <executable> - command to run inside the container (default: /bin/bash)"
-    echo "      --privileged - run a privileged container. This allows the use of KVM"
+    echo "      --privileged - run a privileged container. This allows the use of KVM (if available)"
     echo ""
-    echo "local.sh checker [--remove_image] [--use_existing_image <image_name>] [--force_build] [argumets_for_checker]"
+    echo "local.sh checker [--remove_image] [--use_existing_image <image_name>] [--force_build] [--privileged] [argumets_for_checker]"
     echo ""
     echo "      --remove_image - remove the checker's docker image after the run"
     echo "      --use_existing_image - user image_name instead of building the image from current directory"
     echo "      --force_build - disable caching when building the docker image"
+    echo "      --privileged - run the checker in a privileged container. This allows the use of KVM (if available)"
     echo "      argumets_for_checker - list of space separated arguments to be passed to the checker"
     echo ""
 }
@@ -237,6 +238,10 @@ checker_main() {
             --force_build)
                 extra_docker_args+=('--no-cache')
             ;;
+            --privileged)
+                privileged=--privileged
+            ;;
+        
             *)
                 script_args+=("$1")
             ;;
@@ -254,9 +259,6 @@ checker_main() {
     assign_tmpdir="$(mktemp -d)"
     cp -R ${SRC_DIR}/* "$assign_tmpdir"
 
-    assign_check_tmpdir="$(mktemp -d)"
-    cp -R ${ASSIGNMENT_CHECKER_DIR}/* "$assign_check_tmpdir"
-    
     tmpdir="$(mktemp -d)"
     cp -R ./* "$tmpdir"
 
@@ -265,9 +267,8 @@ checker_main() {
     # In your checker script if you must use absolute paths please use $CI_PROJECT_DIR to reference the location of your directory,
     # otherwise stick to relative paths.
     # It is guaranteed that the current working directory in which checker.sh will run is  $CI_PROJECT_DIR/checker.
-    docker run --rm \
+    docker run $privileged --rm \
             --mount type=bind,source="$assign_tmpdir",target="$ASSIGNMENT_MOUNT_DIR" \
-            --mount type=bind,source="$assign_check_tmpdir",target="$ASSIGNMENT_CHECKER_MOUNT_DIR" \
             --mount type=bind,source="$tmpdir",target="$MOUNT_PROJECT_DIRECTORY" \
             "$image_name" /bin/bash -c "rm -rf /usr/local/bin/bash; cd \"$MOUNT_PROJECT_DIRECTORY/checker\"; \"$MOUNT_PROJECT_DIRECTORY/checker/checker.sh\" \"${script_args[@]}\"" # remove bash middleware script
 

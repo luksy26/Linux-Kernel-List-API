@@ -41,7 +41,7 @@ run_checker()
 			rm $module_path
 	fi
 		
-	pushd /linux/tools/labs
+	pushd /linux/tools/labs &> /dev/null
 		if [ -f $output ]; then
 			echo "Removing $output"
 			rm $output &> /dev/null
@@ -70,6 +70,7 @@ run_checker()
 		do
 			if ((timeout >= TIMEOUT)); then
 				if [ -f $output ]; then
+					echo ""
 					cat $output
 				fi
 				timeout_exceeded
@@ -78,8 +79,9 @@ run_checker()
 			(( timeout += 2 ))
 			echo -n .
 		done
+		echo ""
 		cat $output
-	popd
+	popd &> /dev/null
 }
 
 case $1 in
