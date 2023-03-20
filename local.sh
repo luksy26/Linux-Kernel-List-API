@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 cd "$(dirname "$0")" || exit 1
 
 #=============================================================================
@@ -256,9 +257,6 @@ checker_main() {
         docker build "${extra_docker_args[@]}" -q -t "$image_name" .
     fi
 
-    assign_tmpdir="$(mktemp -d)"
-    cp -R ${SRC_DIR}/* "$assign_tmpdir"
-
     tmpdir="$(mktemp -d)"
     cp -R ./* "$tmpdir"
 
@@ -268,9 +266,8 @@ checker_main() {
     # otherwise stick to relative paths.
     # It is guaranteed that the current working directory in which checker.sh will run is  $CI_PROJECT_DIR/checker.
     docker run $privileged --rm \
-            --mount type=bind,source="$assign_tmpdir",target="$ASSIGNMENT_MOUNT_DIR" \
             --mount type=bind,source="$tmpdir",target="$MOUNT_PROJECT_DIRECTORY" \
-            "$image_name" /bin/bash -c "rm -rf /usr/local/bin/bash; cd \"$MOUNT_PROJECT_DIRECTORY/checker\"; \"$MOUNT_PROJECT_DIRECTORY/checker/checker.sh\" \"${script_args[@]}\"" # remove bash middleware script
+            "$image_name" /bin/bash -c "rm -rf /usr/local/bin/bash; cd \"$MOUNT_PROJECT_DIRECTORY\"; \"$MOUNT_PROJECT_DIRECTORY/checker/checker.sh\" \"${script_args[@]}\"" # remove bash middleware script
 
     if [ -n "$remove_image" ] ; then
         LOG_INFO "Cleaning up..."
