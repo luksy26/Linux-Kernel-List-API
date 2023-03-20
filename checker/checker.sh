@@ -17,8 +17,29 @@ usage()
 timeout_exceeded()
 {
 	echo TIMEOUT EXCEEDED !!! killing the process
+	echo "<VMCK_NEXT_END>"
 	pkill -SIGKILL qemu
 	exit 1
+}
+
+compute_total()
+{
+
+	local output=$1
+	points=$(cat $output | egrep "Total:" | egrep "\ *([0-9]+)" -o  | head -n 1)
+	points_total=$(cat $output | egrep "Total:" | egrep "\ *([0-9]+)" -o  | tail -n 1)
+	if [[ $points != "" ]] && [[ $points_total != "" ]]; then
+		python3 -c "print('Total: ' + str(int ($points * 100 / $points_total)) + '/' + '100')"
+		echo "<VMCK_NEXT_END>"
+	fi
+}
+
+dump_output()
+{
+	local output=$1
+	echo "<VMCK_NEXT_BEGIN>"
+	cat $output
+
 }
 
 run_checker()
@@ -71,7 +92,8 @@ run_checker()
 			if ((timeout >= TIMEOUT)); then
 				if [ -f $output ]; then
 					echo ""
-					cat $output
+					dump_output $output
+					compute_total $output
 				fi
 				timeout_exceeded
 			fi
@@ -80,7 +102,8 @@ run_checker()
 			echo -n .
 		done
 		echo ""
-		cat $output
+		dump_output $output
+		compute_total $output
 	popd &> /dev/null
 }
 
