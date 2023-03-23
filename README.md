@@ -33,10 +33,13 @@ $ ./local.sh docker interactive
 If you use native Linux you can benefit from KVM superpowers using the `--privileged` argument.
 Thus the container will be started in privileged mode and you have access to KVM.
 After executing the last command you should get a prompter in the docker.
-When running in interactive mode the `src/` directory is mounted to the `/linux/tools/labs/skels/assignments/0-list` directory inside the docker. The previous directory is shared with the VM as well in `skels/assignments/0-list`.
-So any change in one  would affect the other.
-**Be careful not to delete your code!**.
-We encourage you to make as many commits as possible on your **private** gitlab repo!
+
+> **Warning**
+> When running in interactive mode the `src/` directory is mounted to the `/linux/tools/labs/skels/assignments/0-list` directory inside the docker.
+> The previous directory is shared with the VM as well in `skels/assignments/0-list`.
+> So any change in one  would affect the other.
+> **Be careful not to delete your code!**.
+> We encourage you to make as many commits as possible on your **private** gitlab repo!
 
 2. Build your assignment:
 ```
@@ -65,28 +68,12 @@ sh _checker
 ```
 
 ## Submiting the assignment
-### Option I
 1. Create a `*.zip` archive containing all the source files and headers of your solution and a `Kbuild` file that results in the `list.ko` module.
 2. Upload the archive on moodle in the section corresponding to the assignment.
 3. After a few minutes, you can see the checker results on the submission page, like in the following image.
 ![feedback](./img/feedback.png)
 
-### Option II
-The second option will automatically create the archive from your **private** repo on gitlab.
-More precisely from the `src` directory of your repo.
-1. From your **private** repo go to `Settings->Access Tokens`.
-Generate a token that has `api` and `read_api` scopes and `owner` role.
-Copy the token.
-![token](./img/token.png)
-
-2. Take the project id of your **private** repo.
-![project_id](./img/project_id.png)
-
-3. Fill in the form on moodle with the details and click `Submit`.
-
-    ![token](./img/form.png)
-
-4. After that you can go to the assignment page and see the already created archive.
-After a few minutes you will be able to see the feedback of the checker.
-
 Find the complete procedure for using `vmchecker-next` [here](https://github.com/systems-cs-pub-ro/vmchecker-next/wiki/Student-Handbook)
+
+> **Warning**
+> Although there is an alternative way to submit your assignment please submit the archive directly.
