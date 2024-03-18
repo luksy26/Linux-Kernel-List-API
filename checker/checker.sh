@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SO2_WORKSPACE=/linux/tools/labs
+SO2_VM_LOG=/tmp/so2_vm_log.txt
 
 
 ASSIGNMENT0_TIMEOUT=300 # 5 min
@@ -88,6 +89,9 @@ timeout_exceeded()
 		else
 			cat $output
 		fi
+		echo "dumping SO2_VM_LOG=${SO2_VM_LOG} output"
+		cat $SO2_VM_LOG
+
 		echo "The Recover Grade Timeout option is not set! Please contact a teaching assistant!"
 	else
 		recover_grade_from_timeout $output
@@ -205,7 +209,7 @@ run_checker()
 			done
 		fi
 
-		LINUX_ADD_CMDLINE="so2=$assignment" make checker &> /dev/null &
+		LINUX_ADD_CMDLINE="so2=$assignment" make checker &> ${SO2_VM_LOG} &
 
 		timeout=0
 		echo -n "CHECKER IS RUNNING"
