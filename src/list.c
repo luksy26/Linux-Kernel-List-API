@@ -4,7 +4,7 @@
  * list.c - Linux kernel list API
  *
  * TODO 1/0: Fill in name / email
- * Author: FirstName LastName <user@email.com>
+ * Author: Lucas Lăzăroiu <lucas.lazaroiu.stud.acs.upb.ro>
  */
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -113,5 +113,5 @@ module_exit(list_exit);
 
 MODULE_DESCRIPTION("Linux kernel list API");
 /* TODO 5: Fill in your name / email address */
-MODULE_AUTHOR("FirstName LastName <your@email.com>");
+MODULE_AUTHOR("Lucas Lăzăroiu <lucas.lazaroiu@stud.acs.pub.ro>");
 MODULE_LICENSE("GPL v2");
