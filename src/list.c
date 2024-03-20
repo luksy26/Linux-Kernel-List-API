@@ -31,11 +31,27 @@ struct proc_dir_entry *proc_list_write;
 struct string_data {
 	char *string;
 	struct list_head list;
-}
+};
 
 static struct list_head head;
 
 DEFINE_RWLOCK(lock);
+
+static struct string_data *string_data_alloc(char *string) {
+	struct string_data *sd;
+
+	sd = kmalloc(sizeof(*sd), GFP_KERNEL);
+	if (sd == NULL) {
+		return NULL;
+	}
+	sd->string = kmalloc(sizeof(char) * strlen(string) + 1, GFP_KERNEL);
+	if (sd->string == NULL) {
+		return NULL;
+	}
+	strcpy(sd->string, string);
+
+	return sd;
+}
 
 static int list_proc_show(struct seq_file *m, void *v)
 {
