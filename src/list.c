@@ -17,10 +17,16 @@
 #include <linux/spinlock.h>
 
 #define PROCFS_MAX_SIZE		512
+#define COMMAND_LENGTH 		4
 
 #define procfs_dir_name		"list"
 #define procfs_file_read	"preview"
 #define procfs_file_write	"management"
+
+#define add_first		"addf"
+#define add_end			"adde"
+#define delete_first	"delf"
+#define delete_all		"dela"
 
 struct proc_dir_entry *proc_list;
 struct proc_dir_entry *proc_list_read;
@@ -53,6 +59,24 @@ static struct string_data *string_data_alloc(char *string) {
 	return sd;
 }
 
+static void string_data_add_to_list(char *string, int end) {
+	struct string_data *sd;
+
+	sd = string_data_alloc(string);
+	if (sd == NULL) {
+		return -ENOMEM;
+	}
+	write_lock(&lock);
+	if (end == 0) {
+		list_add(&sd->list, &head);
+	} else {
+		struct list_head *last = head.prev;
+		struct string_data *last_entry = list_entry(last, struct string_data, list);
+		list_add(&sd->list, last);
+	}
+	write_unlock(&lock);
+}
+
 static int list_proc_show(struct seq_file *m, void *v)
 {
 	/* TODO 3: print your list. One element / line. */
@@ -68,6 +92,26 @@ static int list_proc_show(struct seq_file *m, void *v)
 	}
 	read_unlock(&lock);
 	return 0;
+}
+
+void string_data_delete(char *string, int all) {
+	struct list_head *p, *q;
+	struct string_data *sd;
+
+	write_lock(&lock);
+	list_for_each_safe(p, q, &head) {
+		sd = list_entry(p, struct string_data, list);
+		if (strcmp(sd -> string, string) == 0) {
+			list_del(p);
+			kfree(sd->string);
+			kfree(sd);
+			if (all == 0) {
+				write_unlock(&lock);
+				return;
+			}
+		}
+	}
+	write_unlock(&lock);
 }
 
 static int list_read_open(struct inode *inode, struct  file *file)
@@ -98,6 +142,21 @@ static ssize_t list_write(struct file *file, const char __user *buffer,
 	 * TODO 4/0: parse the command and add/delete elements.
 	 */
 
+	char *command = kmalloc(sizeof(char) * COMMAND_LENGTH, GFP_KERNEL);
+	char *string_for_list = local_buffer + COMMAND_LENGTH + 1;
+
+	strncpy(command, local_buffer, COMMAND_LENGTH);
+
+	if (strcmp(command, add_first) == 0) {
+		string_data_add_to_list(string_for_list, 0);
+	} else if (strcmp(command, add_end) == 0) {
+		string_data_add_to_list(string_for_list, 1);
+	} else if (strcmp(command, delete_first) == 0) {
+		string_data_delete(string_for_list, 0);
+	} else if (strcmp(command, delete_all) == 0) {
+		string_data_delete(string_for_list, 1);
+	}
+	kfree(command);
 	return local_buffer_size;
 }
 
