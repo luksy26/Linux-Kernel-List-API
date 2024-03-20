@@ -14,6 +14,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <linux/spinlock.h>
 
 #define PROCFS_MAX_SIZE		512
 
@@ -27,11 +28,29 @@ struct proc_dir_entry *proc_list_write;
 
 /* TODO 2: define your list! */
 
+struct string_data {
+	char *string;
+	struct list_head list;
+}
+
+static struct list_head head;
+
+DEFINE_RWLOCK(lock);
+
 static int list_proc_show(struct seq_file *m, void *v)
 {
 	/* TODO 3: print your list. One element / line. */
-	seq_puts(m, "Remove this line\n");
 
+	struct list_head *p;
+	struct string_data *sd;
+
+	read_lock(&lock);
+	list_for_each(p, &head) {
+		sd = list_entry(p, struct string_data, list);
+		seq_puts(m, sd->string);
+		seq_putc(m, '\n');
+	}
+	read_unlock(&lock);
 	return 0;
 }
 
