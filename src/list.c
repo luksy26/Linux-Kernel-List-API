@@ -64,14 +64,13 @@ static void string_data_add_to_list(char *string, int end) {
 
 	sd = string_data_alloc(string);
 	if (sd == NULL) {
-		return -ENOMEM;
+		return;
 	}
 	write_lock(&lock);
 	if (end == 0) {
 		list_add(&sd->list, &head);
 	} else {
 		struct list_head *last = head.prev;
-		struct string_data *last_entry = list_entry(last, struct string_data, list);
 		list_add(&sd->list, last);
 	}
 	write_unlock(&lock);
@@ -129,6 +128,7 @@ static ssize_t list_write(struct file *file, const char __user *buffer,
 {
 	char local_buffer[PROCFS_MAX_SIZE];
 	unsigned long local_buffer_size = 0;
+	char *command, *string_for_list;
 
 	local_buffer_size = count;
 	if (local_buffer_size > PROCFS_MAX_SIZE)
@@ -142,9 +142,8 @@ static ssize_t list_write(struct file *file, const char __user *buffer,
 	 * TODO 4/0: parse the command and add/delete elements.
 	 */
 
-	char *command = kmalloc(sizeof(char) * COMMAND_LENGTH, GFP_KERNEL);
-	char *string_for_list = local_buffer + COMMAND_LENGTH + 1;
-
+	command = kmalloc(sizeof(char) * COMMAND_LENGTH, GFP_KERNEL);
+	string_for_list = local_buffer + COMMAND_LENGTH + 1;
 	strncpy(command, local_buffer, COMMAND_LENGTH);
 
 	if (strcmp(command, add_first) == 0) {
